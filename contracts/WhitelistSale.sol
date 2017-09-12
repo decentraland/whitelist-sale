@@ -60,32 +60,29 @@ contract WhitelistSale is owned {
         address _manaToken,
         uint256 _manaPerEth,
         uint256 _initialTimestamp
-        )
-    {
-          manaToken    = _manaToken;
-          manaPerEth    = _manaPerEth;
-          initialTimestamp = _initialTimestamp;
+    ) {
+        manaToken    = _manaToken;
+        manaPerEth    = _manaPerEth;
+        initialTimestamp = _initialTimestamp;
 
-          activated   = false;
+        activated   = false;
     }
 
     // Start sale
-    function activate () onlyOwner {
-          activated = true;
-          Activated();
+    function activate() onlyOwner {
+        activated = true;
+        Activated();
     }
 
     // allow owner to remove trade token
-    function withdrawMana(uint256 _value) onlyOwner returns (bool ok)
-    {
+    function withdrawMana(uint256 _value) onlyOwner returns (bool ok) {
         return ERC20(manaToken).transfer(owner, _value);
         UpdateEvent();
     }
 
     // allow owner to remove arbitrary tokens
     // included just in case contract receives wrong token
-    function withdrawToken(address _token, uint256 _value) onlyOwner returns (bool ok)
-    {
+    function withdrawToken(address _token, uint256 _value) onlyOwner returns (bool ok) {
         return ERC20(_token).transfer(owner,_value);
         UpdateEvent();
     }
@@ -148,7 +145,11 @@ contract WhitelistSale is owned {
         UpdateEvent();
     }
 
-    function () payable {
+    function getInitialTimestamp() returns (uint256 timestamp) {
+        return initialTimestamp;
+    }
+
+    function() payable {
         buy();
     }
 }
