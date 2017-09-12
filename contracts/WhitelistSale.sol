@@ -148,7 +148,6 @@ contract WhitelistSale is owned {
         UpdateEvent();
     }
 
-    // sending ETH to contract sells GNT to user
     function () payable {
         buy();
     }
