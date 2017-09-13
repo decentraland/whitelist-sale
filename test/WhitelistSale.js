@@ -10,7 +10,7 @@ contract('WhitelistSale', function (accounts) {
 
   const ONE_DAY = 24 * 60 * 60
   const START_TIME_OFFSET = 10000
-  const MANA_PER_TOKEN = 12000
+  const MANA_PER_TOKEN = 11954
   const TARGET_ETH = 2000 * 1e18
   const SOLD_AMOUNT = TARGET_ETH * MANA_PER_TOKEN
 
@@ -36,7 +36,7 @@ contract('WhitelistSale', function (accounts) {
     currentTime = (await web3.eth.getBlock('latest')).timestamp
     startTime = currentTime + START_TIME_OFFSET
     token = await MANATokenMock.new()
-    sale = await WhitelistSale.new(token.address, MANA_PER_TOKEN, startTime)
+    sale = await WhitelistSale.new(token.address, startTime)
   })
 
   it('should throw if there is a buy while handbreak is on', async function () {

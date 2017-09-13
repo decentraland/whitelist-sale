@@ -61,15 +61,14 @@ contract WhitelistSale is owned {
 
     function WhitelistSale (
         ERC20 _manaToken,
-        uint256 _manaPerEth,
         uint256 _initialTimestamp
     )
         owned()
     {
         manaToken        = _manaToken;
-        manaPerEth       = _manaPerEth;
         initialTimestamp = _initialTimestamp;
 
+        manaPerEth       = 11954;
         limitPerDay[0]   = 3.3 ether;
         limitPerDay[1]   = 10 ether;
         limitPerDay[2]   = 30 ether;
