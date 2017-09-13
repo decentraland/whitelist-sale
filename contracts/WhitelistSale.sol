@@ -73,8 +73,10 @@ contract WhitelistSale is owned {
 
     // Start sale
     function activate() onlyOwner {
+        if (! activated) {
+            LogActivated();
+        }
         activated = true;
-        LogActivated();
     }
 
     // allow owner to remove trade token
