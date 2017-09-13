@@ -104,13 +104,13 @@ contract WhitelistSale is owned {
     }
 
     modifier onlyIfActive {
-        if (!activated) revert();
-        if (getDay() < 1) revert();
+        require(activated);
+        require(getDay() >= 1);
         _;
     }
 
     modifier onlyIfNotActivated {
-        if (activated) revert();
+        require(!activated);
         _;
     }
 
