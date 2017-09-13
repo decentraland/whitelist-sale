@@ -14,6 +14,15 @@ contract('WhitelistSale', function (accounts) {
   const TARGET_ETH = 2000 * 1e18
   const SOLD_AMOUNT = TARGET_ETH * MANA_PER_TOKEN
 
+  const ethValue = [
+    new BigNumber(3.3 * 1e18),
+    new BigNumber(10 * 1e18),
+    new BigNumber(30 * 1e18),
+    new BigNumber(90 * 1e18),
+    new BigNumber(450 * 1e18),
+    new BigNumber(1500 * 1e18),
+  ]
+
   const baseLimitPerDayAmount = new BigNumber(42)
 
   const buyValue = new BigNumber(21)
@@ -24,15 +33,10 @@ contract('WhitelistSale', function (accounts) {
   let startTime
 
   beforeEach(async function () {
-
     currentTime = (await web3.eth.getBlock('latest')).timestamp
     startTime = currentTime + START_TIME_OFFSET
     token = await MANATokenMock.new()
     sale = await WhitelistSale.new(token.address, MANA_PER_TOKEN, startTime)
-
-    for (let day = 0; day < 6; day++) {
-      await sale.setEthLimitPerDay(day, baseLimitPerDayAmount.plus(day))
-    }
   })
 
   it('should throw if there is a buy while handbreak is on', async function () {
@@ -46,34 +50,13 @@ contract('WhitelistSale', function (accounts) {
         .should.be.rejectedWith(EVMThrow)
   })
 
-  it('should set the ETH limit for a particular day', async function () {
-    const dayNum = 3
-
-    await sale.setEthLimitPerDay(dayNum, baseLimitPerDayAmount)
-
-    const limitPerDay = await sale.limitPerDay.call(dayNum)
-    assert.equal(limitPerDay.toString(), baseLimitPerDayAmount.toString())
-  })
-
   it('should add a user to the whitelist', async function () {
     await sale.addUser(sender)
 
     for (let day = 0; day < 6; day++) {
       let allowOnDay = await sale.allowOnDay.call(day, sender)
-      assert.equal(allowOnDay.toString(), baseLimitPerDayAmount.plus(day))
+      assert.equal(allowOnDay.toString(), ethValue[day])
     }
-  })
-
-  it('should set the initial timestamp', async function() {
-    const newTimestamp = 42
-
-    let initialTimestamp = await sale.initialTimestamp.call()
-    assert.equal(initialTimestamp.toString(), startTime)
-
-    await sale.setInitialTimestamp(currentTime + newTimestamp)
-
-    initialTimestamp = await sale.initialTimestamp.call()
-    assert.equal(initialTimestamp.toString(), currentTime + newTimestamp)
   })
 
   /**
@@ -103,19 +86,19 @@ contract('WhitelistSale', function (accounts) {
     await advanceToTime(startTime)
     await token.setBalance(sale.address, SOLD_AMOUNT)
 
-    await sale.sendTransaction({ from: sender, value: 42 })
+    await sale.sendTransaction({ from: sender, value: 3.3 * 1e18 })
         .should.not.be.rejectedWith(EVMThrow)
-    await sale.sendTransaction({ from: sender, value: 43 })
+    await sale.sendTransaction({ from: sender, value: 1 })
         .should.be.rejectedWith(EVMThrow)
 
     await advanceToTime(startTime + ONE_DAY)
-    await sale.sendTransaction({ from: sender, value: 43 })
+    await sale.sendTransaction({ from: sender, value: 10 * 1e18 })
         .should.not.be.rejectedWith(EVMThrow)
-    await sale.sendTransaction({ from: sender, value: 44 })
+    await sale.sendTransaction({ from: sender, value: 1 })
         .should.be.rejectedWith(EVMThrow)
 
     await advanceToTime(startTime + ONE_DAY * 6)
-    await sale.sendTransaction({ from: sender, value: 42 })
+    await sale.sendTransaction({ from: sender, value: 1 })
         .should.be.rejectedWith(EVMThrow)
   })
 

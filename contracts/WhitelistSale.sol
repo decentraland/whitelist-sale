@@ -70,6 +70,13 @@ contract WhitelistSale is owned {
         manaPerEth       = _manaPerEth;
         initialTimestamp = _initialTimestamp;
 
+        limitPerDay[0]   = 3.3 ether;
+        limitPerDay[1]   = 10 ether;
+        limitPerDay[2]   = 30 ether;
+        limitPerDay[3]   = 90 ether;
+        limitPerDay[4]   = 450 ether;
+        limitPerDay[5]   = 1500 ether;
+
         handbreak        = false;
     }
 
@@ -134,21 +141,6 @@ contract WhitelistSale is owned {
             allowOnDay[_day][user] = limitPerDay[_day];
         }
         LogUserAdded(user);
-    }
-
-    // Set the initial values for the sale
-    function setEthLimitPerDay(uint8 _day, uint256 amount) onlyOwner {
-        require(_day < 6);
-        limitPerDay[_day] = amount;
-        LogUpdatedLimitPerDay(_day, amount);
-    }
-
-    // Allow the sale to be postponed
-    function setInitialTimestamp(uint256 _time) onlyOwner {
-        require(_time > block.timestamp);
-        require(block.timestamp < initialTimestamp);
-        initialTimestamp = _time;
-        LogUpdatedInitialTimestamp(_time);
     }
 
     function() payable {
