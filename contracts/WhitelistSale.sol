@@ -13,10 +13,10 @@ contract ERC20Events {
 }
 contract ERC20 is ERC20Constant, ERC20Stateful, ERC20Events {}
 
-contract owned {
+contract Owned {
     address public owner;
 
-    function owned() {
+    function Owned() {
         owner = msg.sender;
     }
 
@@ -30,9 +30,7 @@ contract owned {
     }
 }
 
-contract WhitelistSale is owned {
-
-    uint256 ONE_DAY = 1 days;
+contract WhitelistSale is Owned {
 
     ERC20 public manaToken;
 
@@ -47,7 +45,7 @@ contract WhitelistSale is owned {
     // This mapping stores the ETH that an user can spend. The array creates one such mapping for each day.
     mapping(address => uint256)[6] public allowOnDay;
 
-    // `allowOnDay` initial values are copied from this array
+    // The initial values allowed per day are copied from this array
     uint256[6] public limitPerDay;
 
     // The sale does not continue if this flag is set to true -- in case of emergency 
@@ -63,7 +61,7 @@ contract WhitelistSale is owned {
         ERC20 _manaToken,
         uint256 _initialTimestamp
     )
-        owned()
+        Owned()
     {
         manaToken        = _manaToken;
         initialTimestamp = _initialTimestamp;
@@ -84,28 +82,27 @@ contract WhitelistSale is owned {
         handbreak = true;
     }
 
-    // allow owner to remove trade token
+    // Withdraw Mana (only owner)
     function withdrawMana(uint256 _value) onlyOwner returns (bool ok) {
-        return manaToken.transfer(owner, _value);
-        LogWithdrawal(_value);
+        return withdrawToken(manaToken, _value);
     }
 
-    // allow owner to remove arbitrary tokens
-    // included just in case contract receives wrong token
+    // Withdraw any ERC20 token (just in case)
     function withdrawToken(address _token, uint256 _value) onlyOwner returns (bool ok) {
         return ERC20(_token).transfer(owner,_value);
         LogWithdrawal(_value);
     }
 
-    // allow owner to remove ETH
+    // Withdraw proceeds
     function withdraw(uint256 _value) onlyOwner {
         require(this.balance >= _value);
         owner.transfer(_value);
         LogWithdrawal(_value);
     }
 
+    // Calculate which day into the sale are we.
     function getDay() public returns (uint256) {
-        return SafeMath.sub(block.timestamp, initialTimestamp) / ONE_DAY;
+        return SafeMath.sub(block.timestamp, initialTimestamp) / 1 days;
     }
 
     modifier onlyIfActive {
@@ -118,7 +115,6 @@ contract WhitelistSale is owned {
     function buy(address beneficiary) payable onlyIfActive {
         require(beneficiary != 0);
 
-        uint orderInMana = msg.value * manaPerEth;
         uint day = getDay();
         uint256 allowedForSender = allowOnDay[day][msg.sender];
 
@@ -126,6 +122,7 @@ contract WhitelistSale is owned {
 
         uint256 balanceInMana = manaToken.balanceOf(address(this));
 
+        uint orderInMana = msg.value * manaPerEth;
         if (orderInMana > balanceInMana) revert();
 
         allowOnDay[day][msg.sender] = SafeMath.sub(allowedForSender, msg.value);
