@@ -114,7 +114,9 @@ contract WhitelistSale is owned {
         _;
     }
 
-    function buy() payable onlyIfActive {
+    function buy(address beneficiary) payable onlyIfActive {
+        require(beneficiary != 0);
+
         uint orderInMana = msg.value * manaPerEth;
         uint day = getDay();
         uint256 allowedForSender = allowOnDay[day][msg.sender];
@@ -126,7 +128,7 @@ contract WhitelistSale is owned {
         if (orderInMana > balanceInMana) revert();
 
         allowOnDay[day][msg.sender] = SafeMath.sub(allowedForSender, msg.value);
-        manaToken.transfer(msg.sender, orderInMana);
+        manaToken.transfer(beneficiary, orderInMana);
 
         LogBought(orderInMana);
     }
@@ -152,6 +154,6 @@ contract WhitelistSale is owned {
     }
 
     function() payable {
-        buy();
+        buy(msg.sender);
     }
 }

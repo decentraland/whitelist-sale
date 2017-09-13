@@ -50,7 +50,7 @@ contract('WhitelistSale', function (accounts) {
     const value = new BigNumber(42)
 
     try {
-      await sale.buy({ from: sender, value })
+      await sale.sendTransaction({ from: sender, value })
     } catch(error) {
       assert.equal(error.message, EVMThrow)
     }
@@ -90,7 +90,7 @@ contract('WhitelistSale', function (accounts) {
    * Users buying
    */
   it('should not allow buys before activation', async () => {
-    await sale.buy({ from: sender, value: buyValue })
+    await sale.sendTransaction({ from: sender, value: buyValue })
         .should.be.rejectedWith(EVMThrow)
   })
 
@@ -100,7 +100,7 @@ contract('WhitelistSale', function (accounts) {
     await advanceToTime(startTime)
     await token.setBalance(sale.address, SOLD_AMOUNT)
 
-    await sale.buy({ from: sender, value: buyValue })
+    await sale.sendTransaction({ from: sender, value: buyValue })
         .should.not.be.rejectedWith(EVMThrow)
     const balanceMana = await token.balanceOf(sender)
     assert.equal(balanceMana.toString(), buyValue.mul(MANA_PER_TOKEN).toString())
