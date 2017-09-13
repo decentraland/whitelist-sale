@@ -35,7 +35,7 @@ contract owned {
 
 contract WhitelistSale is owned {
 
-    uint ONE_DAY = 24 * 60 * 60 * 1000;
+    uint ONE_DAY = 1 days;
 
     address public manaToken;
 
