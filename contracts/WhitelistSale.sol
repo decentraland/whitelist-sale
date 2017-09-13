@@ -2,8 +2,6 @@ pragma solidity ^0.4.11;
 
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
-// https://github.com/nexusdev/erc20/blob/master/contracts/erc20.sol
-
 contract ERC20Constant {
     function balanceOf( address who ) constant returns (uint value);
 }
