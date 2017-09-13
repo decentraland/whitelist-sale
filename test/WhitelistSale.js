@@ -7,17 +7,14 @@ const MANATokenMock = artifacts.require('./Token.sol')
 
 contract('WhitelistSale', function (accounts) {
   const sender = accounts[1]
-  const baseLimitPerDayAmount = new BigNumber(42)
 
   const ONE_DAY = 24 * 60 * 60
-
-  const START = 10000
-
+  const START_TIME_OFFSET = 10000
   const MANA_PER_TOKEN = 12000
-
-  const TARGET_ETH = 2000
-
+  const TARGET_ETH = 2000 * 1e18
   const SOLD_AMOUNT = TARGET_ETH * MANA_PER_TOKEN
+
+  const baseLimitPerDayAmount = new BigNumber(42)
 
   const buyValue = new BigNumber(21)
 
@@ -29,7 +26,7 @@ contract('WhitelistSale', function (accounts) {
   beforeEach(async function () {
 
     currentTime = (await web3.eth.getBlock('latest')).timestamp
-    startTime = currentTime + START
+    startTime = currentTime + START_TIME_OFFSET
     token = await MANATokenMock.new()
     sale = await WhitelistSale.new(token.address, MANA_PER_TOKEN, startTime)
 
@@ -38,24 +35,15 @@ contract('WhitelistSale', function (accounts) {
     }
   })
 
-  it('should activate the whitelist', async function () {
-    let activated = await sale.activated.call()
-    assert.equal(activated, false)
+  it('should throw if there is a buy while handbreak is on', async function () {
+    await sale.addUser(sender)
+    await advanceToTime(startTime)
+    await token.setBalance(sale.address, SOLD_AMOUNT)
 
-    await sale.activate()
+    await sale.activateHandbreak()
 
-    activated = await sale.activated.call()
-    assert.equal(activated, true)
-  })
-
-  it('should throw if there is a buy without activation', async function () {
-    const value = new BigNumber(42)
-
-    try {
-      await sale.sendTransaction({ from: sender, value })
-    } catch(error) {
-      assert.equal(error.message, EVMThrow)
-    }
+    await sale.sendTransaction({ from: sender, value: 42 * 1e18 })
+        .should.be.rejectedWith(EVMThrow)
   })
 
   it('should set the ETH limit for a particular day', async function () {
@@ -91,14 +79,16 @@ contract('WhitelistSale', function (accounts) {
   /**
    * Users buying
    */
-  it('should not allow buys before activation', async () => {
+  it('should not allow buys before the time of start', async () => {
+    await sale.addUser(sender)
+    await token.setBalance(sale.address, SOLD_AMOUNT)
+
     await sale.sendTransaction({ from: sender, value: buyValue })
         .should.be.rejectedWith(EVMThrow)
   })
 
-  it('should allow buys after activation', async () => {
+  it('should allow buys after the sale starts', async () => {
     await sale.addUser(sender)
-    await sale.activate()
     await advanceToTime(startTime)
     await token.setBalance(sale.address, SOLD_AMOUNT)
 
@@ -110,7 +100,6 @@ contract('WhitelistSale', function (accounts) {
 
   it('limit increases per day', async () => {
     await sale.addUser(sender)
-    await sale.activate()
     await advanceToTime(startTime)
     await token.setBalance(sale.address, SOLD_AMOUNT)
 
@@ -132,7 +121,6 @@ contract('WhitelistSale', function (accounts) {
 
   it('fails to sell when maximum was reached', async () => {
     await sale.addUser(sender)
-    await sale.activate()
     await advanceToTime(startTime)
     await token.setBalance(sale.address, 41 * MANA_PER_TOKEN)
 
@@ -144,7 +132,6 @@ contract('WhitelistSale', function (accounts) {
 
   it('owner can get ethereum after sale', async () => {
     await sale.addUser(sender)
-    await sale.activate()
     await advanceToTime(startTime)
     await token.setBalance(sale.address, 41 * MANA_PER_TOKEN)
 

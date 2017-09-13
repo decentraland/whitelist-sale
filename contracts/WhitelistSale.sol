@@ -39,15 +39,20 @@ contract WhitelistSale is owned {
     // Amount of MANA received per ETH
     uint256 public manaPerEth;
 
+    // Sales start at this timestamp
     uint256 public initialTimestamp;
 
+    // The sale goes on through 6 days. Each day, users are allowed to buy up to a certain amount of MANA.
+
+    // This mapping stores the ETH that an user can spend. The array creates one such mapping for each day.
     mapping(address => uint256)[6] public allowOnDay;
 
-    mapping(uint8 => uint256) public limitPerDay;
+    // `allowOnDay` initial values are copied from this array
+    uint256[6] public limitPerDay;
 
-    bool public activated;
+    // The sale does not continue if this flag is set to true -- in case of emergency 
+    bool public handbreak;
 
-    event LogActivated();
     event LogWithdrawal(uint256 _value);
     event LogBought(uint orderInMana);
     event LogUserAdded(address user);
@@ -61,19 +66,16 @@ contract WhitelistSale is owned {
     )
         owned()
     {
-        manaToken    = _manaToken;
-        manaPerEth    = _manaPerEth;
+        manaToken        = _manaToken;
+        manaPerEth       = _manaPerEth;
         initialTimestamp = _initialTimestamp;
 
-        activated   = false;
+        handbreak        = false;
     }
 
-    // Start sale
-    function activate() onlyOwner {
-        if (! activated) {
-            LogActivated();
-        }
-        activated = true;
+    // Pause the sale
+    function activateHandbreak() onlyOwner {
+        handbreak = true;
     }
 
     // allow owner to remove trade token
@@ -101,14 +103,9 @@ contract WhitelistSale is owned {
     }
 
     modifier onlyIfActive {
-        require(activated);
+        require(!handbreak);
         require(getDay() >= 0);
         require(getDay() < 6);
-        _;
-    }
-
-    modifier onlyIfNotActivated {
-        require(!activated);
         _;
     }
 
@@ -139,14 +136,17 @@ contract WhitelistSale is owned {
         LogUserAdded(user);
     }
 
-    function setEthLimitPerDay(uint8 _day, uint256 amount) onlyOwner onlyIfNotActivated {
+    // Set the initial values for the sale
+    function setEthLimitPerDay(uint8 _day, uint256 amount) onlyOwner {
         require(_day < 6);
         limitPerDay[_day] = amount;
         LogUpdatedLimitPerDay(_day, amount);
     }
 
-    function setInitialTimestamp(uint256 _time) onlyOwner onlyIfNotActivated {
+    // Allow the sale to be postponed
+    function setInitialTimestamp(uint256 _time) onlyOwner {
         require(_time > block.timestamp);
+        require(block.timestamp < initialTimestamp);
         initialTimestamp = _time;
         LogUpdatedInitialTimestamp(_time);
     }
@@ -155,3 +155,4 @@ contract WhitelistSale is owned {
         buy(msg.sender);
     }
 }
+
