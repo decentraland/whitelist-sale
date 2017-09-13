@@ -59,6 +59,7 @@ contract WhitelistSale is owned {
     event LogBought(uint orderInMana);
     event LogUserAdded(address user);
     event LogUpdatedLimitPerDay(uint8 _day, uint256 amount);
+    event LogUpdatedInitialTimestamp(uint256 initialTimestamp);
 
     function WhitelistSale (
         ERC20 _manaToken,
@@ -144,6 +145,12 @@ contract WhitelistSale is owned {
         require(_day < 7);
         limitPerDay[_day] = amount;
         LogUpdatedLimitPerDay(_day, amount);
+    }
+
+    function setInitialTimestamp(uint256 _time) onlyOwner onlyIfNotActivated {
+        require(_time > block.timestamp);
+        initialTimestamp = _time;
+        LogUpdatedInitialTimestamp(_time);
     }
 
     function() payable {
