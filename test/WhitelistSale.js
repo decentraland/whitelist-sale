@@ -1,5 +1,7 @@
 const BigNumber = web3.BigNumber
 
+const { advanceToTime, ether, should, EVMThrow } = require('./utils')
+
 const WhitelistSale = artifacts.require('./WhitelistSale.sol')
 const MANATokenMock = artifacts.require('./Token.sol')
 
@@ -7,22 +9,31 @@ contract('WhitelistSale', function (accounts) {
   const sender = accounts[1]
   const baseLimitPerDayAmount = new BigNumber(42)
 
-  const THROW_MESSAGE = 'VM Exception while processing transaction: invalid opcode'
+  const START = 10000
+
   const MANA_PER_TOKEN = 12000
-  const INITIAL = 1000
+
+  const TARGET_ETH = 2000
+
+  const SOLD_AMOUNT = TARGET_ETH * MANA_PER_TOKEN
+
+  const buyValue = new BigNumber(21)
 
   let token
   let sale
+  let currentTime
+  let startTime
 
   beforeEach(async function () {
-    token = await MANATokenMock.new()
-    sale = await WhitelistSale.new(token.address, MANA_PER_TOKEN, INITIAL)
-  })
 
-  it('allows test token to be set for any user', async () => {
-    await token.setBalance(sender, 2000)
-    const balance = await token.balanceOf(sender)
-    assert.equal(balance, 2000)
+    currentTime = (await web3.eth.getBlock('latest')).timestamp
+    startTime = currentTime + START
+    token = await MANATokenMock.new()
+    sale = await WhitelistSale.new(token.address, MANA_PER_TOKEN, startTime)
+
+    for (let day = 1; day < 7; day++) {
+      // await sale.setEthLimitPerDay(day, baseLimitPerDayAmount.plus(day))
+    }
   })
 
   it('should activate the whitelist', async function () {
@@ -41,7 +52,7 @@ contract('WhitelistSale', function (accounts) {
     try {
       await sale.buy({ from: sender, value })
     } catch(error) {
-      assert.equal(error.message, THROW_MESSAGE)
+      assert.equal(error.message, EVMThrow)
     }
   })
 
@@ -71,5 +82,39 @@ contract('WhitelistSale', function (accounts) {
       let allowOnDay = await sale.allowOnDay.call(day, sender)
       assert.equal(allowOnDay.toString(), baseLimitPerDayAmount.plus(day))
     }
+  })
+
+  it('should set the initial timestamp', async function() {
+    const newTimestamp = 42
+
+    let initialTimestamp = await sale.initialTimestamp.call()
+    assert.equal(initialTimestamp, 0)
+
+    await sale.setInitialTimestamp(newTimestamp)
+
+    initialTimestamp = await sale.initialTimestamp.call()
+    assert.equal(initialTimestamp, newTimestamp)
+  })
+
+  /**
+   * Users buying
+   */
+  it('should not allow buys before activation', async () => {
+    await sale.buy({ from: sender, value: buyValue })
+        .should.be.rejectedWith(EVMThrow)
+  })
+
+  it('should allow buys after activation', async () => {
+    await sale.addUser(sender)
+    await sale.activate()
+    await advanceToTime(startTime)
+    await token.setBalance(sale.address, SOLD_AMOUNT)
+
+    console.log('Day is', (await sale.getDay.call()).toString())
+
+    await sale.buy({ from: sender, value: buyValue })
+        .should.not.be.rejectedWith(EVMThrow)
+    const balanceMana = await token.balanceOf(sender)
+    assert.equal(balanceMana, buyValue.mul(INITIAL))
   })
 })

@@ -32,11 +32,9 @@ contract owned {
     }
 }
 
-// contract can sell tokens for ETH
-
 contract WhitelistSale is owned {
 
-    uint ONE_DAY = 1 days;
+    uint256 ONE_DAY = 1 days;
 
     ERC20 public manaToken;
 
@@ -59,7 +57,7 @@ contract WhitelistSale is owned {
     event LogBought(uint orderInMana);
     event LogUserAdded(address user);
     event LogUpdatedLimitPerDay(uint8 _day, uint256 amount);
-    event LogUpdatedInitialTimestamp(uint256 initialTimestamp);
+    event LogUpdatedInitialTimestamp(uint256 _initialTimestamp);
 
     function WhitelistSale (
         ERC20 _manaToken,
