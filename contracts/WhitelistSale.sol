@@ -1,5 +1,6 @@
 pragma solidity ^0.4.11;
 
+
 // https://github.com/nexusdev/erc20/blob/master/contracts/erc20.sol
 
 contract ERC20Constant {
@@ -31,7 +32,6 @@ contract owned {
 }
 
 // contract can sell tokens for ETH
-// prices are in amount of wei per batch of token units
 
 contract WhitelistSale is owned {
 
