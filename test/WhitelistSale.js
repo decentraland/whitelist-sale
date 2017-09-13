@@ -72,16 +72,4 @@ contract('WhitelistSale', function (accounts) {
       assert.equal(allowOnDay.toString(), baseLimitPerDayAmount.plus(day))
     }
   })
-
-  it('should set the initial timestamp', async function() {
-    const newTimestamp = 42
-
-    let initialTimestamp = await sale.initialTimestamp.call()
-    assert.equal(initialTimestamp, 0)
-
-    await sale.setInitialTimestamp(newTimestamp)
-
-    initialTimestamp = await sale.initialTimestamp.call()
-    assert.equal(initialTimestamp, newTimestamp)
-  })
 })

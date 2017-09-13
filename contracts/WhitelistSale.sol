@@ -146,10 +146,6 @@ contract WhitelistSale is owned {
         LogUpdatedLimitPerDay(_day, amount);
     }
 
-    function setInitialTimestamp(uint256 _initialTimestamp) onlyOwner onlyIfNotActivated {
-        initialTimestamp = _initialTimestamp;
-    }
-
     function() payable {
         buy();
     }
