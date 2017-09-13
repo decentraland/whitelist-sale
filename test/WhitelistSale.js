@@ -70,6 +70,14 @@ contract('WhitelistSale', function (accounts) {
         .should.be.rejectedWith(EVMThrow)
   })
 
+  it('a random user can\'t but', async () => {
+    await advanceToTime(startTime)
+    await token.setBalance(sale.address, SOLD_AMOUNT)
+
+    await sale.sendTransaction({ from: accounts[2], value: buyValue })
+        .should.be.rejectedWith(EVMThrow)
+  })
+
   it('should allow buys after the sale starts', async () => {
     await sale.addUser(sender)
     await advanceToTime(startTime)
