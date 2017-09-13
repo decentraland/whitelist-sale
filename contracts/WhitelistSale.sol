@@ -37,7 +37,7 @@ contract WhitelistSale is owned {
 
     uint ONE_DAY = 1 days;
 
-    address public manaToken;
+    ERC20 public manaToken;
 
     // Amount of MANA received per ETH
     uint256 public manaPerEth;
@@ -57,7 +57,7 @@ contract WhitelistSale is owned {
     event UpdateEvent();
 
     function TokenTrader (
-        address _manaToken,
+        ERC20 _manaToken,
         uint256 _manaPerEth,
         uint256 _initialTimestamp
     ) {
@@ -76,7 +76,7 @@ contract WhitelistSale is owned {
 
     // allow owner to remove trade token
     function withdrawMana(uint256 _value) onlyOwner returns (bool ok) {
-        return ERC20(manaToken).transfer(owner, _value);
+        return manaToken.transfer(owner, _value);
         UpdateEvent();
     }
 
@@ -117,12 +117,12 @@ contract WhitelistSale is owned {
 
         if (msg.value > allowOnDay[day][msg.sender]) revert();
 
-        uint256 balanceInMana = ERC20(manaToken).balanceOf(address(this));
+        uint256 balanceInMana = manaToken.balanceOf(address(this));
 
         if (orderInMana > balanceInMana) revert();
 
         allowOnDay[day][msg.sender] -= msg.value;
-        if (!ERC20(manaToken).transfer(msg.sender, orderInMana)) revert();
+        if (!manaToken.transfer(msg.sender, orderInMana)) revert();
 
         UpdateEvent();
     }
