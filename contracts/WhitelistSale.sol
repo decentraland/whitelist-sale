@@ -139,6 +139,7 @@ contract WhitelistSale is owned {
     }
 
     function setEthLimitPerDay(uint8 _day, uint256 amount) onlyOwner onlyIfNotActivated {
+        require(_day < 7);
         limitPerDay[_day] = amount;
         LogUpdatedLimitPerDay(_day, amount);
     }
