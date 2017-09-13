@@ -1,5 +1,6 @@
 pragma solidity ^0.4.11;
 
+import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 
 // https://github.com/nexusdev/erc20/blob/master/contracts/erc20.sol
 
@@ -100,7 +101,7 @@ contract WhitelistSale is owned {
     }
 
     function getDay() public returns (uint256) {
-        return (block.timestamp - initialTimestamp) / ONE_DAY;
+        return SafeMath.sub(block.timestamp, initialTimestamp) / ONE_DAY;
     }
 
     modifier onlyIfActive {
@@ -117,14 +118,15 @@ contract WhitelistSale is owned {
     function buy() payable onlyIfActive {
         uint orderInMana = msg.value * manaPerEth;
         uint day = getDay();
+        uint256 allowedForSender = allowOnDay[day][msg.sender];
 
-        if (msg.value > allowOnDay[day][msg.sender]) revert();
+        if (msg.value > allowedForSender) revert();
 
         uint256 balanceInMana = manaToken.balanceOf(address(this));
 
         if (orderInMana > balanceInMana) revert();
 
-        allowOnDay[day][msg.sender] -= msg.value;
+        allowOnDay[day][msg.sender] = SafeMath.sub(allowedForSender, msg.value);
         manaToken.transfer(msg.sender, orderInMana);
 
         LogBought(orderInMana);
