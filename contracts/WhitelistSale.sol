@@ -95,7 +95,7 @@ contract WhitelistSale is owned {
     // allow owner to remove ETH
     function withdraw(uint256 _value) onlyOwner {
         require(this.balance >= _value);
-        owner.transfer(_value)
+        owner.transfer(_value);
         LogWithdrawal(_value);
     }
 
@@ -125,7 +125,7 @@ contract WhitelistSale is owned {
         if (orderInMana > balanceInMana) revert();
 
         allowOnDay[day][msg.sender] -= msg.value;
-        manaToken.transfer(msg.sender, orderInMana)
+        manaToken.transfer(msg.sender, orderInMana);
 
         LogBought(orderInMana);
     }
