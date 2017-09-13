@@ -39,9 +39,6 @@ contract WhitelistSale is owned {
     // Amount of MANA received per ETH
     uint256 public manaPerEth;
 
-    // Units of accounting for the MANA token
-    uint256 public units = 1e18;
-
     uint256 public initialTimestamp;
 
     mapping(address => uint256)[6] public allowOnDay;
