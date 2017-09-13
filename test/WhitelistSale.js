@@ -9,6 +9,8 @@ contract('WhitelistSale', function (accounts) {
   const sender = accounts[1]
   const baseLimitPerDayAmount = new BigNumber(42)
 
+  const ONE_DAY = 24 * 60 * 60
+
   const START = 10000
 
   const MANA_PER_TOKEN = 12000
@@ -104,5 +106,54 @@ contract('WhitelistSale', function (accounts) {
         .should.not.be.rejectedWith(EVMThrow)
     const balanceMana = await token.balanceOf(sender)
     assert.equal(balanceMana.toString(), buyValue.mul(MANA_PER_TOKEN).toString())
+  })
+
+  it('limit increases per day', async () => {
+    await sale.addUser(sender)
+    await sale.activate()
+    await advanceToTime(startTime)
+    await token.setBalance(sale.address, SOLD_AMOUNT)
+
+    await sale.sendTransaction({ from: sender, value: 42 })
+        .should.not.be.rejectedWith(EVMThrow)
+    await sale.sendTransaction({ from: sender, value: 43 })
+        .should.be.rejectedWith(EVMThrow)
+
+    await advanceToTime(startTime + ONE_DAY)
+    await sale.sendTransaction({ from: sender, value: 43 })
+        .should.not.be.rejectedWith(EVMThrow)
+    await sale.sendTransaction({ from: sender, value: 44 })
+        .should.be.rejectedWith(EVMThrow)
+
+    await advanceToTime(startTime + ONE_DAY * 6)
+    await sale.sendTransaction({ from: sender, value: 42 })
+        .should.be.rejectedWith(EVMThrow)
+  })
+
+  it('fails to sell when maximum was reached', async () => {
+    await sale.addUser(sender)
+    await sale.activate()
+    await advanceToTime(startTime)
+    await token.setBalance(sale.address, 41 * MANA_PER_TOKEN)
+
+    await sale.sendTransaction({ from: sender, value: 41 })
+        .should.not.be.rejectedWith(EVMThrow)
+    await sale.sendTransaction({ from: sender, value: 1 })
+        .should.be.rejectedWith(EVMThrow)
+  })
+
+  it('owner can get ethereum after sale', async () => {
+    await sale.addUser(sender)
+    await sale.activate()
+    await advanceToTime(startTime)
+    await token.setBalance(sale.address, 41 * MANA_PER_TOKEN)
+
+    await sale.sendTransaction({ from: sender, value: 41 })
+
+    const balanceBefore = await web3.eth.getBalance(sale.address)
+    var tx = await sale.withdraw(41)
+    const balanceAfterWithdraw = await web3.eth.getBalance(sale.address)
+
+    assert.equal(balanceBefore.minus(balanceAfterWithdraw).toString(), 41)
   })
 })

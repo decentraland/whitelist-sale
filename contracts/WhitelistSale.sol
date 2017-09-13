@@ -63,7 +63,9 @@ contract WhitelistSale is owned {
         ERC20 _manaToken,
         uint256 _manaPerEth,
         uint256 _initialTimestamp
-    ) {
+    )
+        owned()
+    {
         manaToken    = _manaToken;
         manaPerEth    = _manaPerEth;
         initialTimestamp = _initialTimestamp;
