@@ -93,11 +93,9 @@ contract WhitelistSale is owned {
     }
 
     // allow owner to remove ETH
-    function withdraw(uint256 _value) onlyOwner returns (bool ok)
-    {
-        if (this.balance >= _value) {
-            return owner.send(_value);
-        }
+    function withdraw(uint256 _value) onlyOwner {
+        require(this.balance >= _value);
+        owner.transfer(_value)
         LogWithdrawal(_value);
     }
 
