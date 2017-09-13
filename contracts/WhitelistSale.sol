@@ -125,7 +125,7 @@ contract WhitelistSale is owned {
         if (orderInMana > balanceInMana) revert();
 
         allowOnDay[day][msg.sender] -= msg.value;
-        if (!manaToken.transfer(msg.sender, orderInMana)) revert();
+        manaToken.transfer(msg.sender, orderInMana)
 
         LogBought(orderInMana);
     }
