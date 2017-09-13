@@ -60,7 +60,7 @@ contract WhitelistSale is owned {
     event LogUserAdded(address user);
     event LogUpdatedLimitPerDay(uint8 _day, uint256 amount);
 
-    function TokenTrader (
+    function WhitelistSale (
         ERC20 _manaToken,
         uint256 _manaPerEth,
         uint256 _initialTimestamp

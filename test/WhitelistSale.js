@@ -16,7 +16,7 @@ contract('WhitelistSale', function (accounts) {
 
   beforeEach(async function () {
     token = await MANATokenMock.new()
-    sale = await WhitelistSale.new(token, MANA_PER_TOKEN, INITIAL)
+    sale = await WhitelistSale.new(token.address, MANA_PER_TOKEN, INITIAL)
   })
 
   it('allows test token to be set for any user', async () => {
