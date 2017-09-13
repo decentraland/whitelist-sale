@@ -106,6 +106,7 @@ contract WhitelistSale is owned {
     modifier onlyIfActive {
         require(activated);
         require(getDay() >= 0);
+        require(getDay() < 6);
         _;
     }
 
