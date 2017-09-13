@@ -53,8 +53,11 @@ contract WhitelistSale is owned {
 
     bool public activated;
 
-    event Activated();
-    event UpdateEvent();
+    event LogActivated();
+    event LogWithdrawal(uint256 _value);
+    event LogBought(uint orderInMana);
+    event LogUserAdded(address user);
+    event LogUpdatedLimitPerDay(uint8 _day, uint256 amount);
 
     function TokenTrader (
         ERC20 _manaToken,
@@ -71,20 +74,20 @@ contract WhitelistSale is owned {
     // Start sale
     function activate() onlyOwner {
         activated = true;
-        Activated();
+        LogActivated();
     }
 
     // allow owner to remove trade token
     function withdrawMana(uint256 _value) onlyOwner returns (bool ok) {
         return manaToken.transfer(owner, _value);
-        UpdateEvent();
+        LogWithdrawal(_value);
     }
 
     // allow owner to remove arbitrary tokens
     // included just in case contract receives wrong token
     function withdrawToken(address _token, uint256 _value) onlyOwner returns (bool ok) {
         return ERC20(_token).transfer(owner,_value);
-        UpdateEvent();
+        LogWithdrawal(_value);
     }
 
     // allow owner to remove ETH
@@ -93,7 +96,7 @@ contract WhitelistSale is owned {
         if (this.balance >= _value) {
             return owner.send(_value);
         }
-        UpdateEvent();
+        LogWithdrawal(_value);
     }
 
     function getDay() public returns (uint256) {
@@ -124,7 +127,7 @@ contract WhitelistSale is owned {
         allowOnDay[day][msg.sender] -= msg.value;
         if (!manaToken.transfer(msg.sender, orderInMana)) revert();
 
-        UpdateEvent();
+        LogBought(orderInMana);
     }
 
     // Add a user to the whitelist
@@ -132,17 +135,16 @@ contract WhitelistSale is owned {
         for (uint8 _day = 1; _day < 7; _day++) {
             allowOnDay[_day][user] = limitPerDay[_day];
         }
-        UpdateEvent();
+        LogUserAdded(user);
     }
 
     function setEthLimitPerDay(uint8 _day, uint256 amount) onlyOwner onlyIfNotActivated {
         limitPerDay[_day] = amount;
-        UpdateEvent();
+        LogUpdatedLimitPerDay(_day, amount);
     }
 
     function setInitialTimestamp(uint256 _initialTimestamp) onlyOwner onlyIfNotActivated {
         initialTimestamp = _initialTimestamp;
-        UpdateEvent();
     }
 
     function getInitialTimestamp() returns (uint256 timestamp) {
