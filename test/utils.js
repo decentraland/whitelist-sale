@@ -62,4 +62,4 @@ export function ether (n: number) {
   return new web3.BigNumber(web3.toWei(n, 'ether'))
 }
 
-export const EVMThrow = 'invalid opcode'
+export const EVMThrow = 'VM Exception while processing transaction: invalid opcode'

@@ -46,7 +46,7 @@ contract WhitelistSale is owned {
 
     uint256 public initialTimestamp;
 
-    mapping(address => uint256)[7] public allowOnDay;
+    mapping(address => uint256)[6] public allowOnDay;
 
     mapping(uint8 => uint256) public limitPerDay;
 
@@ -105,7 +105,7 @@ contract WhitelistSale is owned {
 
     modifier onlyIfActive {
         require(activated);
-        require(getDay() >= 1);
+        require(getDay() >= 0);
         _;
     }
 
@@ -133,14 +133,14 @@ contract WhitelistSale is owned {
 
     // Add a user to the whitelist
     function addUser(address user) onlyOwner {
-        for (uint8 _day = 1; _day < 7; _day++) {
+        for (uint8 _day = 0; _day < 6; _day++) {
             allowOnDay[_day][user] = limitPerDay[_day];
         }
         LogUserAdded(user);
     }
 
     function setEthLimitPerDay(uint8 _day, uint256 amount) onlyOwner onlyIfNotActivated {
-        require(_day < 7);
+        require(_day < 6);
         limitPerDay[_day] = amount;
         LogUpdatedLimitPerDay(_day, amount);
     }
