@@ -1,264 +1,76 @@
-'use strict'
-
-const expect = require('chai').expect
-
-const { advanceToBlock, ether, should, EVMThrow } = require('./utils')
-const MANACrowdsale = artifacts.require('./MANACrowdsale.sol')
-const MANAContinuousSale = artifacts.require('./MANAContinuousSale.sol')
-const MANAToken = artifacts.require('./MANAToken.sol')
-
 const BigNumber = web3.BigNumber
 
-contract('MANACrowdsale', function ([_, wallet, wallet2, buyer, purchaser, buyer2, purchaser2]) {
+const WhitelistSale = artifacts.require('./WhitelistSale.sol')
+const MANATokenMock = artifacts.require('./Token.sol')
 
-  const initialRate = new BigNumber(1000)
-  const endRate = new BigNumber(900)
+contract('WhitelistSale', function (accounts) {
+  const sender = accounts[1]
+  const baseLimitPerDayAmount = new BigNumber(42)
 
-  const newRate = new BigNumber(500)
-  const preferentialRate = new BigNumber(2000)
-  const value = ether(1)
+  const MANA_PER_TOKEN = 12000
+  const INITIAL = 1000
 
-  const expectedFoundationTokens = new BigNumber(6000)
-  const expectedTokenSupply = new BigNumber(10000)
-
-  let startBlock, endBlock
-  let crowdsale, token
+  let token
+  let sale
 
   beforeEach(async function () {
-    startBlock = web3.eth.blockNumber + 10
-    endBlock = web3.eth.blockNumber + 20
-
-    crowdsale = await MANACrowdsale.new(
-      startBlock,
-      endBlock,
-      initialRate,
-      endRate,
-      preferentialRate,
-      wallet
-    )
-    token = MANAToken.at(await crowdsale.token())
+    token = await MANATokenMock.new()
+    sale = await WhitelistSale.new(token, MANA_PER_TOKEN, INITIAL)
   })
 
-  it('starts with token paused', async function () {
-    const paused = await token.paused()
-    paused.should.equal(true)
+  it('allows test token to be set for any user', async () => {
+    await token.setBalance(sender, 2000)
+    const balance = await token.balanceOf(sender)
+    assert.equal(balance, 2000)
   })
 
-  it('owner should be able to change wallet', async function () {
-    await crowdsale.setWallet(wallet2)
-    let wallet = await crowdsale.wallet()
-    wallet.should.equal(wallet2)
+  it('should activate the whitelist', async function () {
+    let activated = await sale.activated.call()
+    assert.equal(activated, false)
 
-    const continuousSale = MANAContinuousSale.at(await crowdsale.continuousSale())
-    wallet = await continuousSale.wallet()
-    wallet.should.equal(wallet2)
+    await sale.activate()
+
+    activated = await sale.activated.call()
+    assert.equal(activated, true)
   })
 
-  it('non-owner should not be able to change wallet', async function () {
-    await crowdsale.setWallet(wallet2, {from: purchaser}).should.be.rejectedWith(EVMThrow)
+  it('should set the ETH limit for a particular day', async function () {
+    let dayNum = 1
+    let limitPerDay
+
+    for (let day = 1; day < 7; day++) {
+      limitPerDay = await sale.limitPerDay.call(day)
+      assert.equal(limitPerDay, 0)
+    }
+
+    await sale.setEthLimitPerDay(dayNum, baseLimitPerDayAmount)
+
+    limitPerDay = await sale.limitPerDay.call(dayNum)
+    assert.equal(limitPerDay.toString(), baseLimitPerDayAmount.toString())
   })
 
-  it('owner should be able to start continuous sale', async function () {
-    await crowdsale.beginContinuousSale().should.be.rejectedWith(EVMThrow)
+  it('should add a user to the whitelist', async function () {
+    for (let day = 1; day < 7; day++) {
+      await sale.setEthLimitPerDay(day, baseLimitPerDayAmount.plus(day))
+    }
 
-    await advanceToBlock(endBlock)
-    await crowdsale.finalize()
+    await sale.addUser(sender)
 
-    const sale = MANAContinuousSale.at(await crowdsale.continuousSale())
-
-    let started = await sale.started()
-    started.should.equal(false)
-
-    await crowdsale.beginContinuousSale().should.be.fulfilled
-
-    started = await sale.started()
-    started.should.equal(true)
+    for (let day = 1; day < 7; day++) {
+      let allowOnDay = await sale.allowOnDay.call(day, sender)
+      assert.equal(allowOnDay.toString(), baseLimitPerDayAmount.plus(day))
+    }
   })
 
-  it('owner should be able to unpause token after crowdsale ends', async function () {
-    await advanceToBlock(endBlock)
+  it('should set the initial timestamp', async function() {
+    const newTimestamp = 42
 
-    await crowdsale.unpauseToken().should.be.rejectedWith(EVMThrow)
+    let initialTimestamp = await sale.initialTimestamp.call()
+    assert.equal(initialTimestamp, 0)
 
-    await crowdsale.finalize()
+    await sale.setInitialTimestamp(newTimestamp)
 
-    let paused = await token.paused()
-    paused.should.equal(true)
-
-    await crowdsale.unpauseToken()
-
-    paused = await token.paused()
-    paused.should.equal(false)
-  })
-
-  it('non-owners should not be able to start continuous sale', async function () {
-    await crowdsale.beginContinuousSale({from: purchaser}).should.be.rejectedWith(EVMThrow)
-  })
-
-  describe('rate during auction should decrease at a fixed step every block', async function () {
-
-    let balance, startBlock, endBlock
-
-    let initialRate = 9166
-    let endRate = 5500
-    let preferentialRate = initialRate
-    const rateAtBlock10 = new BigNumber(9165)
-    const rateAtBlock20 = new BigNumber(9164)
-    const rateAtBlock100 = new BigNumber(9155)
-    const rateAtBlock2 = new BigNumber(9166)
-    const rateAtBlock10000 = new BigNumber(7973)
-    const rateAtBlock30000 = new BigNumber(5586)
-
-    beforeEach(async function() {
-
-      startBlock = web3.eth.blockNumber + 10
-      endBlock = web3.eth.blockNumber + 10 + 30720
-
-      crowdsale = await MANACrowdsale.new(
-        startBlock,
-        endBlock,
-        initialRate,
-        endRate,
-        preferentialRate,
-        wallet
-      )
-      token = MANAToken.at(await crowdsale.token())
-
-    })
-    it('at start', async function () {
-      await advanceToBlock(startBlock - 1)
-
-      await crowdsale.buyTokens(buyer, {value, from: purchaser})
-      balance = await token.balanceOf(buyer)
-      balance.should.be.bignumber.equal(value.mul(initialRate))
-    })
-
-    it('at block 10', async function () {
-      await advanceToBlock(startBlock + 9)
-
-      await crowdsale.buyTokens(buyer2, {value, from: purchaser2})
-      balance = await token.balanceOf(buyer2)
-
-      balance.should.be.bignumber.equal(value.mul(rateAtBlock10))
-    })
-
-    it('at block 20', async function () {
-      await advanceToBlock(startBlock + 19)
-
-      await crowdsale.buyTokens(buyer2, {value, from: purchaser2})
-      balance = await token.balanceOf(buyer2)
-
-      balance.should.be.bignumber.equal(value.mul(rateAtBlock20))
-    })
-
-    it('at block 100', async function () {
-      await advanceToBlock(startBlock + 99)
-
-      await crowdsale.buyTokens(buyer2, {value, from: purchaser2})
-      balance = await token.balanceOf(buyer2)
-
-      balance.should.be.bignumber.equal(value.mul(rateAtBlock100))
-    })
-
-    it('at block 2', async function () {
-      await advanceToBlock(startBlock + 1)
-
-      await crowdsale.buyTokens(buyer2, {value, from: purchaser2})
-      balance = await token.balanceOf(buyer2)
-
-      balance.should.be.bignumber.equal(value.mul(rateAtBlock2))
-    })
-
-    it.skip('at block 10000', async function () {
-      await advanceToBlock(startBlock + 9999)
-
-      await crowdsale.buyTokens(buyer2, {value, from: purchaser2})
-      balance = await token.balanceOf(buyer2)
-
-      balance.should.be.bignumber.equal(value.mul(rateAtBlock10000))
-    })
-
-    it.skip('at block 30000', async function () {
-      await advanceToBlock(startBlock + 29999)
-
-      await crowdsale.buyTokens(buyer2, {value, from: purchaser2})
-      balance = await token.balanceOf(buyer2)
-
-      balance.should.be.bignumber.equal(value.mul(rateAtBlock30000))
-    })
-  })
-
-  it('whitelisted buyers should access tokens at reduced price until end of auction', async function () {
-    await crowdsale.addToWhitelist(buyer)
-
-    await crowdsale.buyTokens(buyer, {value, from: buyer})
-    const balance = await token.balanceOf(buyer)
-    balance.should.be.bignumber.equal(value.mul(preferentialRate))
-  })
-
-  it('whitelisted big whale investor should not exceed the cap', async function () {
-    const cap = (await crowdsale.cap());
-    const overCap = cap.mul(2);
-    await crowdsale.addToWhitelist(buyer);
-    await crowdsale.buyTokens(buyer, {value: overCap, from: buyer}).should.be.rejectedWith(EVMThrow);
-    const balance = await token.balanceOf(buyer);
-    const raised = await crowdsale.weiRaised();
-    balance.should.be.bignumber.equal(0);
-    raised.should.be.bignumber.most(cap);
-  })
-
-  it('owner can set the price for a particular buyer', async function() {
-    await crowdsale.addToWhitelist(buyer)
-
-    const preferentialRateForBuyer = new BigNumber(200)
-    const { logs } = await crowdsale.setBuyerRate(buyer, preferentialRateForBuyer)
-
-    const event = logs.find(e => e.event === 'PreferentialRateChange')
-    expect(event).to.exist
-
-    await crowdsale.buyTokens(buyer, {value, from: buyer})
-    const balance = await token.balanceOf(buyer)
-    balance.should.be.bignumber.equal(value.mul(preferentialRateForBuyer))
-    balance.should.not.be.bignumber.equal(value.mul(preferentialRate))
-
-    // cannot change rate after crowdsale starts
-    await advanceToBlock(startBlock - 1)
-    await crowdsale.setBuyerRate(buyer, preferentialRateForBuyer).should.be.rejectedWith(EVMThrow)
-  })
-
-  it('owner cannot set a custom rate before whitelisting a buyer', async function() {
-    await crowdsale.setBuyerRate(buyer, new BigNumber(200)).should.be.rejectedWith(EVMThrow)
-  })
-
-  it('beneficiary is not the same as buyer', async function() {
-    const beneficiary = buyer2
-
-    await crowdsale.addToWhitelist(buyer)
-    await crowdsale.addToWhitelist(beneficiary)
-
-    const preferentialRateForBuyer = new BigNumber(200)
-    const invalidRate = new BigNumber(100)
-    await crowdsale.setBuyerRate(buyer, preferentialRateForBuyer)
-    await crowdsale.setBuyerRate(beneficiary, invalidRate)
-
-    await crowdsale.buyTokens(beneficiary, {value, from: buyer})
-    const balance = await token.balanceOf(beneficiary)
-    balance.should.be.bignumber.equal(value.mul(preferentialRateForBuyer))
-  })
-
-  it('tokens should be assigned correctly to foundation when finalized', async function () {
-    await advanceToBlock(startBlock - 1)
-
-    // since price at first block is 1000, total tokens emitted will be 4000
-    await crowdsale.buyTokens(buyer, {value: 4, from: purchaser})
-
-    await advanceToBlock(endBlock)
-    await crowdsale.finalize()
-
-    const balance = await token.balanceOf(wallet)
-    balance.should.be.bignumber.equal(expectedFoundationTokens)
-
-    const totalSupply = await token.totalSupply()
-    totalSupply.should.be.bignumber.equal(expectedTokenSupply)
+    initialTimestamp = await sale.initialTimestamp.call()
+    assert.equal(initialTimestamp, newTimestamp)
   })
 })

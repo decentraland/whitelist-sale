@@ -1,3 +1,5 @@
+"use strict";
+
 const BigNumber = web3.BigNumber
 
 export const should = require('chai')
