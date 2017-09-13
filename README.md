@@ -6,8 +6,6 @@ Contract for the Whitelist sale for Decentraland.
 
 A professional audit is being performed by independent contractors, but in the meantime, we invite you to review the code and provide feedback.
 
-The scope of our bug bounty program includes all contracts related to the `WhitelistSale` contract.
-
 The bug bounty program runs until we deploy the smart contract on Thursday 14th, 22:00 GMT.
 
 ### Compensation
