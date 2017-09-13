@@ -148,10 +148,6 @@ contract WhitelistSale is owned {
         initialTimestamp = _initialTimestamp;
     }
 
-    function getInitialTimestamp() returns (uint256 timestamp) {
-        return initialTimestamp;
-    }
-
     function() payable {
         buy();
     }

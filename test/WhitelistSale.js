@@ -7,6 +7,7 @@ contract('WhitelistSale', function (accounts) {
   const sender = accounts[1]
   const baseLimitPerDayAmount = new BigNumber(42)
 
+  const THROW_MESSAGE = 'VM Exception while processing transaction: invalid opcode'
   const MANA_PER_TOKEN = 12000
   const INITIAL = 1000
 
@@ -32,6 +33,16 @@ contract('WhitelistSale', function (accounts) {
 
     activated = await sale.activated.call()
     assert.equal(activated, true)
+  })
+
+  it('should throw if there is a buy without activation', async function () {
+    const value = new BigNumber(42)
+
+    try {
+      await sale.buy({ from: sender, value })
+    } catch(error) {
+      assert.equal(error.message, THROW_MESSAGE)
+    }
   })
 
   it('should set the ETH limit for a particular day', async function () {
