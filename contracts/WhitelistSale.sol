@@ -150,7 +150,7 @@ contract WhitelistSale is Owned {
 
     // Batch add users
     function addManyUsers(address[] users) onlyOwner {
-        require(users.length < 1000);
+        require(users.length < 10000);
         for (uint index = 0; index < users.length; index++) {
              whitelisted[users[index]] = true;
              LogUserAdded(users[index]);
