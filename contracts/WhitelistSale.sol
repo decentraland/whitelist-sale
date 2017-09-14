@@ -42,8 +42,11 @@ contract WhitelistSale is Owned {
 
     // The sale goes on through 6 days. Each day, users are allowed to buy up to a certain amount of MANA.
 
-    // This mapping stores the ETH that an user can spend. The array creates one such mapping for each day.
-    mapping(address => uint256)[6] public allowOnDay;
+    // This mapping stores the addresses for whitelisted users
+    mapping(address => bool) public whitelisted;
+
+    // Used to calculate the current limit
+    mapping(address => uint256) public bought;
 
     // The initial values allowed per day are copied from this array
     uint256[6] public limitPerDay;
@@ -68,11 +71,11 @@ contract WhitelistSale is Owned {
 
         manaPerEth       = 11954;
         limitPerDay[0]   = 3.3 ether;
-        limitPerDay[1]   = 10 ether;
-        limitPerDay[2]   = 30 ether;
-        limitPerDay[3]   = 90 ether;
-        limitPerDay[4]   = 450 ether;
-        limitPerDay[5]   = 1500 ether;
+        limitPerDay[1]   = 10 ether   + limitPerDay[0];
+        limitPerDay[2]   = 30 ether   + limitPerDay[1];
+        limitPerDay[3]   = 90 ether   + limitPerDay[2];
+        limitPerDay[4]   = 450 ether  + limitPerDay[3];
+        limitPerDay[5]   = 1500 ether + limitPerDay[4];
 
         handbreak        = false;
     }
@@ -114,9 +117,10 @@ contract WhitelistSale is Owned {
 
     function buy(address beneficiary) payable onlyIfActive {
         require(beneficiary != 0);
+        require(whitelisted[msg.sender]);
 
         uint day = getDay();
-        uint256 allowedForSender = allowOnDay[day][msg.sender];
+        uint256 allowedForSender = limitPerDay[day] - bought[msg.sender];
 
         if (msg.value > allowedForSender) revert();
 
@@ -125,7 +129,7 @@ contract WhitelistSale is Owned {
         uint orderInMana = msg.value * manaPerEth;
         if (orderInMana > balanceInMana) revert();
 
-        allowOnDay[day][msg.sender] = SafeMath.sub(allowedForSender, msg.value);
+        bought[msg.sender] = SafeMath.add(bought[msg.sender], msg.value);
         manaToken.transfer(beneficiary, orderInMana);
 
         LogBought(orderInMana);
@@ -133,10 +137,16 @@ contract WhitelistSale is Owned {
 
     // Add a user to the whitelist
     function addUser(address user) onlyOwner {
-        for (uint8 _day = 0; _day < 6; _day++) {
-            allowOnDay[_day][user] = limitPerDay[_day];
-        }
+        whitelisted[user] = true;
         LogUserAdded(user);
+    }
+
+    // Batch add users
+    function addManyUsers(address[] users) onlyOwner {
+        for (uint index = 0; index < users.length; index++) {
+             whitelisted[users[index]] = true;
+             LogUserAdded(users[index]);
+        }
     }
 
     function() payable {
