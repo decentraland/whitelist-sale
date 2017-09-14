@@ -57,6 +57,7 @@ contract WhitelistSale is Owned {
     event LogWithdrawal(uint256 _value);
     event LogBought(uint orderInMana);
     event LogUserAdded(address user);
+    event LogUserRemoved(address user);
     event LogUpdatedLimitPerDay(uint8 _day, uint256 amount);
     event LogUpdatedInitialTimestamp(uint256 _initialTimestamp);
 
@@ -141,8 +142,15 @@ contract WhitelistSale is Owned {
         LogUserAdded(user);
     }
 
+    // Remove an user from the whitelist
+    function removeUser(address user) onlyOwner {
+        whitelisted[user] = false;
+        LogUserRemoved(user);
+    }
+
     // Batch add users
     function addManyUsers(address[] users) onlyOwner {
+        require(users.length < 1000);
         for (uint index = 0; index < users.length; index++) {
              whitelisted[users[index]] = true;
              LogUserAdded(users[index]);
