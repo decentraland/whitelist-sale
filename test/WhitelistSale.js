@@ -52,11 +52,7 @@ contract('WhitelistSale', function (accounts) {
 
   it('should add a user to the whitelist', async function () {
     await sale.addUser(sender)
-
-    for (let day = 0; day < 6; day++) {
-      let allowOnDay = await sale.allowOnDay.call(day, sender)
-      assert.equal(allowOnDay.toString(), ethValue[day])
-    }
+    assert.equal(await sale.whitelisted.call(sender), true)
   })
 
   /**
