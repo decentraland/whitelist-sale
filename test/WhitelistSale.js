@@ -7,6 +7,7 @@ const MANATokenMock = artifacts.require('./Token.sol')
 
 contract('WhitelistSale', function (accounts) {
   const sender = accounts[1]
+  const receiver = accounts[2]
 
   const ONE_DAY = 24 * 60 * 60
   const START_TIME_OFFSET = 10000
@@ -36,7 +37,7 @@ contract('WhitelistSale', function (accounts) {
     currentTime = (await web3.eth.getBlock('latest')).timestamp
     startTime = currentTime + START_TIME_OFFSET
     token = await MANATokenMock.new()
-    sale = await WhitelistSale.new(token.address, startTime)
+    sale = await WhitelistSale.new(token.address, startTime, receiver)
   })
 
   it('should throw if there is a buy while handbreak is on', async function () {
@@ -66,7 +67,7 @@ contract('WhitelistSale', function (accounts) {
         .should.be.rejectedWith(EVMThrow)
   })
 
-  it('a random user can\'t but', async () => {
+  it('a random user can\'t buy', async () => {
     await advanceToTime(startTime)
     await token.setBalance(sale.address, SOLD_AMOUNT)
 
@@ -117,17 +118,15 @@ contract('WhitelistSale', function (accounts) {
         .should.be.rejectedWith(EVMThrow)
   })
 
-  it('owner can get ethereum after sale', async () => {
+  it('receiver gets ethereum after sale', async () => {
     await sale.addUser(sender)
     await advanceToTime(startTime)
     await token.setBalance(sale.address, 41 * MANA_PER_TOKEN)
 
+    const balanceBefore = await web3.eth.getBalance(receiver)
     await sale.sendTransaction({ from: sender, value: 41 })
+    const balanceAfterWithdraw = await web3.eth.getBalance(receiver)
 
-    const balanceBefore = await web3.eth.getBalance(sale.address)
-    var tx = await sale.withdraw(41)
-    const balanceAfterWithdraw = await web3.eth.getBalance(sale.address)
-
-    assert.equal(balanceBefore.minus(balanceAfterWithdraw).toString(), 41)
+    assert.equal(balanceAfterWithdraw.minus(balanceBefore).toString(), 41)
   })
 })

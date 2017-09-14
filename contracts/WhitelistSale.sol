@@ -79,6 +79,9 @@ contract WhitelistSale is Owned {
     // The initial values allowed per day are copied from this array
     uint256[6] public limitPerDay;
 
+    // Forwarding address
+    address public receiver;
+
     // The sale does not continue if this flag is set to true -- in case of emergency 
     bool public handbreak;
 
@@ -91,12 +94,14 @@ contract WhitelistSale is Owned {
 
     function WhitelistSale (
         ERC20 _manaToken,
-        uint256 _initialTimestamp
+        uint256 _initialTimestamp,
+        address _receiver
     )
         Owned()
     {
         manaToken        = _manaToken;
         initialTimestamp = _initialTimestamp;
+        receiver         = _receiver;
 
         manaPerEth       = 11954;
         limitPerDay[0]   = 3.3 ether;
@@ -132,6 +137,12 @@ contract WhitelistSale is Owned {
         LogWithdrawal(_value);
     }
 
+    // Change address where funds are received
+    function changeReceiver(address _receiver) onlyOwner {
+        require(_receiver != 0);
+        receiver = _receiver;
+    }
+
     // Calculate which day into the sale are we.
     function getDay() public returns (uint256) {
         return SafeMath.sub(block.timestamp, initialTimestamp) / 1 days;
@@ -159,6 +170,7 @@ contract WhitelistSale is Owned {
         if (orderInMana > balanceInMana) revert();
 
         bought[msg.sender] = SafeMath.add(bought[msg.sender], msg.value);
+        receiver.transfer(msg.value);
         manaToken.transfer(beneficiary, orderInMana);
 
         LogBought(orderInMana);
