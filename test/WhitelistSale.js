@@ -40,17 +40,6 @@ contract('WhitelistSale', function (accounts) {
     sale = await WhitelistSale.new(token.address, startTime, receiver)
   })
 
-  it('should throw if there is a buy while handbreak is on', async function () {
-    await sale.addUser(sender)
-    await advanceToTime(startTime)
-    await token.setBalance(sale.address, SOLD_AMOUNT)
-
-    await sale.activateHandbreak()
-
-    await sale.sendTransaction({ from: sender, value: 42 * 1e18 })
-        .should.be.rejectedWith(EVMThrow)
-  })
-
   it('should add a user to the whitelist', async function () {
     await sale.addUser(sender)
     assert.equal(await sale.whitelisted.call(sender), true)
